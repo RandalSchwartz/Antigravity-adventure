@@ -22,6 +22,16 @@ class ImageService {
     try {
       final List<ChatMessage> history = [];
 
+      // Add a strong system instruction to enforce image generation
+      history.add(
+        ChatMessage.system(
+          'You are an expert image generator. '
+          'Your ONLY task is to generate high-quality images based on the user description. '
+          'DO NOT return text explanations or refusals unless absolutely necessary. '
+          'ALWAYS prioritize generating the visual scene.',
+        ),
+      );
+
       // 1. Add conversation history as context
       // We'll take the last few messages to provide context for visual consistency
       final recentHistory = conversationHistory.length > 4
@@ -46,7 +56,7 @@ class ImageService {
       }
 
       // 3. Generate the new image
-      final prompt = 'Generate an image that depicts this scene: $storyText';
+      final prompt = 'HIGH-QUALITY PHOTOREALISTIC IMAGE: $storyText';
       debugPrint('ImageService: Generating image with prompt: $prompt');
       debugPrint('ImageService: Context history count: ${history.length}');
 
