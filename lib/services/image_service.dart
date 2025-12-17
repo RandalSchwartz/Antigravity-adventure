@@ -8,10 +8,10 @@ class ImageService {
     if (apiKey.isEmpty) {
       throw Exception('API Key cannot be empty');
     }
-    // Using string identifier for model as it's the most reliable way in v2.0.2
+    // Using documented connection string for image generation
     Agent.environment['GEMINI_API_KEY'] = apiKey;
     Agent.environment['GOOGLE_API_KEY'] = apiKey;
-    _agent = Agent('google:gemini-2.5-flash-image');
+    _agent = Agent('google?media=gemini-3-pro-image-preview');
   }
 
   Future<Uint8List> generateImage({
@@ -22,25 +22,25 @@ class ImageService {
     try {
       final List<ChatMessage> history = [];
 
-      // Restore grounding for image generation
+      // Grounding for image generation
       history.add(
         ChatMessage.system(
           'You are an expert image generator. '
-          'Your task is to generate high-quality images based on the user description. '
-          'Return ONLY the visual scene as an image.',
+          'Generate a high-quality photorealistic image of the scene described. '
+          'Do NOT return text, return ONLY the visual image.',
         ),
       );
 
-      // 1. Add conversation history as context
-      final recentHistory = conversationHistory.length > 4
-          ? conversationHistory.sublist(conversationHistory.length - 4)
+      // 1. Add conversation history as context (limiting to useful context)
+      final recentHistory = conversationHistory.length > 3
+          ? conversationHistory.sublist(conversationHistory.length - 3)
           : conversationHistory;
 
       for (final msg in recentHistory) {
         history.add(msg);
       }
 
-      // 2. Add previous image if available as a DataPart
+      // 2. Add previous image if available
       if (previousImage != null) {
         history.add(
           ChatMessage.user(
@@ -54,38 +54,37 @@ class ImageService {
       }
 
       // 3. Generate the new image
-      final prompt =
-          'Generate a high-quality photorealistic image of this scene: $storyText';
-      debugPrint('ImageService: Generating image with prompt: $prompt');
-      debugPrint('ImageService: Context history count: ${history.length}');
+      debugPrint('ImageService: Generating image with prompt: $storyText');
 
       final result = await _agent.generateMedia(
-        prompt,
+        storyText,
         history: history,
         mimeTypes: ['image/png'],
       );
 
       debugPrint(
-        'ImageService: Received response from agent. Message count: ${result.messages.length}',
+        'ImageService: Received response. Assets count: ${result.assets.length}, Messages: ${result.messages.length}',
       );
 
-      // 4. Extract image bytes from the result
-      // The image is expected in the last message's parts
-      final assistantMsg = result.messages.last;
-      debugPrint(
-        'ImageService: Last message parts count: ${assistantMsg.parts.length}',
-      );
+      // 4. Extract image bytes from assets (recommended way)
+      for (final asset in result.assets) {
+        if (asset is DataPart && asset.mimeType.startsWith('image/')) {
+          debugPrint(
+            'ImageService: Found image asset (${asset.bytes.length} bytes)',
+          );
+          return asset.bytes;
+        }
+      }
 
-      for (final part in assistantMsg.parts) {
-        if (part is DataPart && part.mimeType.startsWith('image/')) {
-          debugPrint(
-            'ImageService: Found image data (${part.bytes.length} bytes)',
-          );
-          return part.bytes;
-        } else if (part is TextPart) {
-          debugPrint(
-            'ImageService: Found text part instead of image: ${part.text}',
-          );
+      // Fallback: check parts in messages if assets list is empty
+      if (result.messages.isNotEmpty) {
+        for (final part in result.messages.last.parts) {
+          if (part is DataPart && part.mimeType.startsWith('image/')) {
+            debugPrint('ImageService: Found image in message parts');
+            return part.bytes;
+          } else if (part is TextPart) {
+            debugPrint('ImageService: Text part in response: ${part.text}');
+          }
         }
       }
 
