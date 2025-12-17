@@ -1,17 +1,17 @@
-import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
 import 'package:dartantic_ai/dartantic_ai.dart';
 
 class ImageService {
-  final String _apiKey;
-  static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
+  late final Agent _agent;
 
-  ImageService(this._apiKey) {
-    if (_apiKey.isEmpty) {
+  ImageService(String apiKey) {
+    if (apiKey.isEmpty) {
       throw Exception('API Key cannot be empty');
     }
+    // Using string identifier for model as it's the most reliable way in v2.0.2
+    Agent.environment['GEMINI_API_KEY'] = apiKey;
+    Agent.environment['GOOGLE_API_KEY'] = apiKey;
+    _agent = Agent('google:gemini-3-pro-image-preview');
   }
 
   Future<Uint8List> generateImage({
@@ -19,114 +19,50 @@ class ImageService {
     required List<ChatMessage> conversationHistory,
     Uint8List? previousImage,
   }) async {
-    final url = Uri.parse('$_baseUrl?key=$_apiKey');
-
-    // Build the prompt parts
-    final parts = <Map<String, dynamic>>[];
-
-    // 1. Add conversation history as text context
-    // We'll take the last 4 messages (2 turns)
-    final recentHistory = conversationHistory.length > 4
-        ? conversationHistory.sublist(conversationHistory.length - 4)
-        : conversationHistory;
-
-    final contextBuffer = StringBuffer();
-    contextBuffer.writeln('Story context:');
-    for (final message in recentHistory) {
-      contextBuffer.writeln(message.text);
-    }
-    parts.add({'text': contextBuffer.toString()});
-
-    // 2. Add previous image if available (Inline Data)
-    if (previousImage != null) {
-      parts.add({
-        'inline_data': {
-          'mime_type': 'image/png',
-          'data': base64Encode(previousImage),
-        },
-      });
-    }
-
-    // 3. Add the specific image generation prompt
-    parts.add({
-      'text': '\nGenerate an image that depicts this scene: $storyText',
-    });
-
-    final body = {
-      "contents": [
-        {"parts": parts},
-      ],
-      "safetySettings": [
-        {
-          "category": "HARM_CATEGORY_HARASSMENT",
-          "threshold": "BLOCK_ONLY_HIGH",
-        },
-        {
-          "category": "HARM_CATEGORY_HATE_SPEECH",
-          "threshold": "BLOCK_ONLY_HIGH",
-        },
-        {
-          "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          "threshold": "BLOCK_ONLY_HIGH",
-        },
-        {
-          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-          "threshold": "BLOCK_ONLY_HIGH",
-        },
-      ],
-    };
-
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
+      final List<ChatMessage> history = [];
 
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Failed to generate image: ${response.statusCode} ${response.body}',
+      // 1. Add conversation history as context
+      // We'll take the last few messages to provide context for visual consistency
+      final recentHistory = conversationHistory.length > 4
+          ? conversationHistory.sublist(conversationHistory.length - 4)
+          : conversationHistory;
+
+      for (final msg in recentHistory) {
+        history.add(msg);
+      }
+
+      // 2. Add previous image if available as a DataPart
+      if (previousImage != null) {
+        history.add(
+          ChatMessage.user(
+            '',
+            parts: [
+              DataPart(previousImage, mimeType: 'image/png'),
+              const TextPart('This was the previous scene.'),
+            ],
+          ),
         );
       }
 
-      final json = jsonDecode(response.body);
+      // 3. Generate the new image
+      final prompt = 'Generate an image that depicts this scene: $storyText';
+      final result = await _agent.generateMedia(
+        prompt,
+        history: history,
+        mimeTypes: ['image/png'],
+      );
 
-      final candidates = json['candidates'] as List?;
-      if (candidates != null && candidates.isNotEmpty) {
-        final candidate = candidates[0];
-
-        // Check finish reason
-        if (candidate['finishReason'] != 'STOP' &&
-            candidate['finishReason'] != null) {
-          throw Exception(
-            'Image generation stopped. Reason: ${candidate['finishReason']}',
-          );
-        }
-
-        final content = candidate['content'];
-        if (content != null && content['parts'] != null) {
-          final parts = content['parts'] as List;
-
-          // Look for inline_data
-          for (final part in parts) {
-            if (part.containsKey('inlineData')) {
-              final data = part['inlineData']['data'];
-              return base64Decode(data);
-            }
-          }
-
-          // If no inlineData, check for text
-          final textParts = parts
-              .where((p) => p.containsKey('text'))
-              .map((p) => p['text'])
-              .join(' ');
-          throw Exception('Model returned only text: "$textParts"');
+      // 4. Extract image bytes from the result
+      // The image is expected in the last message's parts
+      final assistantMsg = result.messages.last;
+      for (final part in assistantMsg.parts) {
+        if (part is DataPart && part.mimeType.startsWith('image/')) {
+          return part.bytes;
         }
       }
 
-      throw Exception(
-        'No candidates found in response. Body: ${response.body}',
-      );
+      throw Exception('No image data found in the response.');
     } on Exception catch (e, stackTrace) {
       Error.throwWithStackTrace(
         Exception('Failed to generate image: $e'),
