@@ -10,12 +10,21 @@ class GameState {
   ImageService? _imageService;
 
   // Signals
-  final apiKey = signal<String?>(null, debugLabel: 'apiKey');
-  final currentStory = signal<StorySegment?>(null, debugLabel: 'currentStory');
-  final currentImage = signal<Uint8List?>(null, debugLabel: 'currentImage');
-  final isLoading = signal(false, debugLabel: 'isLoading');
-  final error = signal<String?>(null, debugLabel: 'error');
-  final history = listSignal<String>([], debugLabel: 'history');
+  final apiKey = signal<String?>(null, debugLabel: 'Game State: API Key');
+  final currentStory = signal<StorySegment?>(
+    null,
+    debugLabel: 'Game State: Current Story',
+  );
+  final currentImage = signal<Uint8List?>(
+    null,
+    debugLabel: 'Game State: Current Image',
+  );
+  final isLoading = signal(false, debugLabel: 'Game State: Is Loading');
+  final error = signal<String?>(null, debugLabel: 'Game State: Error');
+  final history = listSignal<String>(
+    [],
+    debugLabel: 'Game State: Story History',
+  );
 
   // Internal state to track the last valid image for context
   Uint8List? _lastSuccessfulImage;
