@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:dartantic_ai/dartantic_ai.dart';
 
 class ImageService {
@@ -47,18 +47,36 @@ class ImageService {
 
       // 3. Generate the new image
       final prompt = 'Generate an image that depicts this scene: $storyText';
+      debugPrint('ImageService: Generating image with prompt: $prompt');
+      debugPrint('ImageService: Context history count: ${history.length}');
+
       final result = await _agent.generateMedia(
         prompt,
         history: history,
         mimeTypes: ['image/png'],
       );
 
+      debugPrint(
+        'ImageService: Received response from agent. Message count: ${result.messages.length}',
+      );
+
       // 4. Extract image bytes from the result
       // The image is expected in the last message's parts
       final assistantMsg = result.messages.last;
+      debugPrint(
+        'ImageService: Last message parts count: ${assistantMsg.parts.length}',
+      );
+
       for (final part in assistantMsg.parts) {
         if (part is DataPart && part.mimeType.startsWith('image/')) {
+          debugPrint(
+            'ImageService: Found image data (${part.bytes.length} bytes)',
+          );
           return part.bytes;
+        } else if (part is TextPart) {
+          debugPrint(
+            'ImageService: Found text part instead of image: ${part.text}',
+          );
         }
       }
 

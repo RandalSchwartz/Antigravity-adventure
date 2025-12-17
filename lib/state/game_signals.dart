@@ -84,6 +84,7 @@ class GameState {
         debugPrint('Initial image generation failed: $e');
         debugPrintStack(stackTrace: stackTrace);
         currentImage.value = null;
+        error.value = "Story generated, but visual scene failed: $e";
       }
 
       // Add to display history
@@ -126,6 +127,7 @@ class GameState {
         debugPrintStack(stackTrace: stackTrace);
         // If failed, we clear the current display image but keep _lastSuccessfulImage for next time
         currentImage.value = null;
+        error.value = "Story continued, but visual scene failed: $e";
       }
 
       // Update display history
