@@ -11,7 +11,31 @@ class ImageService {
     // Using documented connection string for image generation
     Agent.environment['GEMINI_API_KEY'] = apiKey;
     Agent.environment['GOOGLE_API_KEY'] = apiKey;
-    _agent = Agent('google?media=gemini-3-pro-image-preview');
+    _agent = Agent(
+      'google?media=gemini-3-pro-image-preview',
+      mediaModelOptions: const GoogleMediaGenerationModelOptions(
+        safetySettings: [
+          ChatGoogleGenerativeAISafetySetting(
+            category: ChatGoogleGenerativeAISafetySettingCategory.harassment,
+            threshold: ChatGoogleGenerativeAISafetySettingThreshold.blockNone,
+          ),
+          ChatGoogleGenerativeAISafetySetting(
+            category: ChatGoogleGenerativeAISafetySettingCategory.hateSpeech,
+            threshold: ChatGoogleGenerativeAISafetySettingThreshold.blockNone,
+          ),
+          ChatGoogleGenerativeAISafetySetting(
+            category:
+                ChatGoogleGenerativeAISafetySettingCategory.sexuallyExplicit,
+            threshold: ChatGoogleGenerativeAISafetySettingThreshold.blockNone,
+          ),
+          ChatGoogleGenerativeAISafetySetting(
+            category:
+                ChatGoogleGenerativeAISafetySettingCategory.dangerousContent,
+            threshold: ChatGoogleGenerativeAISafetySettingThreshold.blockNone,
+          ),
+        ],
+      ),
+    );
   }
 
   Future<Uint8List> generateImage({
@@ -20,53 +44,27 @@ class ImageService {
     Uint8List? previousImage,
   }) async {
     try {
-      final List<ChatMessage> history = [];
+      // NOTE: We are intentionally NOT using history for image generation (stateless).
+      // Imagen 3 works best with a single, clear, descriptive prompt.
+      // We also avoid system messages here to ensure the model focuses purely on drawing.
 
-      // Grounding for image generation
-      history.add(
-        ChatMessage.system(
-          'You are an expert image generator. '
-          'Generate a high-quality photorealistic image of the scene described. '
-          'Do NOT return text, return ONLY the visual image.',
-        ),
-      );
+      // 1. Prepare a clean, descriptive prompt
+      final prompt =
+          'A high-quality photorealistic image of this scene: $storyText';
+      debugPrint('ImageService: Generating image with prompt: $prompt');
 
-      // 1. Add conversation history as context (limiting to useful context)
-      final recentHistory = conversationHistory.length > 3
-          ? conversationHistory.sublist(conversationHistory.length - 3)
-          : conversationHistory;
-
-      for (final msg in recentHistory) {
-        history.add(msg);
-      }
-
-      // 2. Add previous image if available
-      if (previousImage != null) {
-        history.add(
-          ChatMessage.user(
-            '',
-            parts: [
-              DataPart(previousImage, mimeType: 'image/png'),
-              const TextPart('Context: This was the previous scene.'),
-            ],
-          ),
-        );
-      }
-
-      // 3. Generate the new image
-      debugPrint('ImageService: Generating image with prompt: $storyText');
-
+      // 2. Generate the image
       final result = await _agent.generateMedia(
-        storyText,
-        history: history,
+        prompt,
         mimeTypes: ['image/png'],
+        // history: history, // Removed for stateless reliability
       );
 
       debugPrint(
         'ImageService: Received response. Assets count: ${result.assets.length}, Messages: ${result.messages.length}',
       );
 
-      // 4. Extract image bytes from assets (recommended way)
+      // 3. Extract image bytes from assets
       for (final asset in result.assets) {
         if (asset is DataPart && asset.mimeType.startsWith('image/')) {
           debugPrint(
