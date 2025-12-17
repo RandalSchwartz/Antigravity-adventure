@@ -11,7 +11,7 @@ class ImageService {
     // Using string identifier for model as it's the most reliable way in v2.0.2
     Agent.environment['GEMINI_API_KEY'] = apiKey;
     Agent.environment['GOOGLE_API_KEY'] = apiKey;
-    _agent = Agent('google:gemini-3-pro-image-preview');
+    _agent = Agent('google:gemini-2.5-flash-image');
   }
 
   Future<Uint8List> generateImage({
@@ -22,18 +22,16 @@ class ImageService {
     try {
       final List<ChatMessage> history = [];
 
-      // Add a strong system instruction to enforce image generation
+      // Restore grounding for image generation
       history.add(
         ChatMessage.system(
           'You are an expert image generator. '
-          'Your ONLY task is to generate high-quality images based on the user description. '
-          'DO NOT return text explanations or refusals unless absolutely necessary. '
-          'ALWAYS prioritize generating the visual scene.',
+          'Your task is to generate high-quality images based on the user description. '
+          'Return ONLY the visual scene as an image.',
         ),
       );
 
       // 1. Add conversation history as context
-      // We'll take the last few messages to provide context for visual consistency
       final recentHistory = conversationHistory.length > 4
           ? conversationHistory.sublist(conversationHistory.length - 4)
           : conversationHistory;
@@ -49,14 +47,15 @@ class ImageService {
             '',
             parts: [
               DataPart(previousImage, mimeType: 'image/png'),
-              const TextPart('This was the previous scene.'),
+              const TextPart('Context: This was the previous scene.'),
             ],
           ),
         );
       }
 
       // 3. Generate the new image
-      final prompt = 'HIGH-QUALITY PHOTOREALISTIC IMAGE: $storyText';
+      final prompt =
+          'Generate a high-quality photorealistic image of this scene: $storyText';
       debugPrint('ImageService: Generating image with prompt: $prompt');
       debugPrint('ImageService: Context history count: ${history.length}');
 
