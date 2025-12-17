@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:dartantic_ai/dartantic_ai.dart';
 
 class ImageService {
   final String _apiKey;
@@ -17,7 +16,7 @@ class ImageService {
 
   Future<Uint8List> generateImage({
     required String storyText,
-    required List<Content> conversationHistory,
+    required List<ChatMessage> conversationHistory,
     Uint8List? previousImage,
   }) async {
     final url = Uri.parse('$_baseUrl?key=$_apiKey');
@@ -33,12 +32,8 @@ class ImageService {
 
     final contextBuffer = StringBuffer();
     contextBuffer.writeln('Story context:');
-    for (final content in recentHistory) {
-      for (final part in content.parts) {
-        if (part is TextPart) {
-          contextBuffer.writeln(part.text);
-        }
-      }
+    for (final message in recentHistory) {
+      contextBuffer.writeln(message.text);
     }
     parts.add({'text': contextBuffer.toString()});
 
