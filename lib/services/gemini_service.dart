@@ -1,18 +1,22 @@
 import 'package:dartantic_ai/dartantic_ai.dart';
+import 'package:json_schema/json_schema.dart';
 
 class GeminiService {
   late final Agent _agent;
-  final String _apiKey;
+  final List<ChatMessage> _history = [];
 
-  GeminiService(this._apiKey) {
-    if (_apiKey.isEmpty) {
+  GeminiService(String apiKey) {
+    if (apiKey.isEmpty) {
       throw Exception('API Key cannot be empty');
     }
-    _agent = Agent(
-      'gemini-2.5-flash',
-      apiKey: _apiKey,
-      systemPrompt:
-          '''You are a creative storyteller for a "Choose Your Own Adventure" game.
+    // Set API key in environment for the agent to find
+    Agent.environment['GEMINI_API_KEY'] = apiKey;
+
+    _agent = Agent('gemini-2.5-flash');
+
+    _history.add(
+      ChatMessage.system(
+        '''You are a creative storyteller for a "Choose Your Own Adventure" game.
 Generate the next segment of the story based on the user's action.
 Return the response in valid JSON format with the following structure:
 {
@@ -23,12 +27,14 @@ Return the response in valid JSON format with the following structure:
     "Choice 3"
   ]
 }''',
+      ),
     );
   }
 
   Future<StorySegment> generateStory(String prompt) async {
     final result = await _agent.sendFor<StorySegment>(
       prompt,
+      history: _history,
       outputSchema: JsonSchema.create({
         'type': 'object',
         'properties': {
@@ -43,11 +49,12 @@ Return the response in valid JSON format with the following structure:
       outputFromJson: StorySegment.fromJson,
     );
 
+    _history.addAll(result.messages);
     return result.output;
   }
 
   // Get the full chat history for context
-  List<ChatMessage> get chatHistory => _agent.history;
+  List<ChatMessage> get chatHistory => _history;
 }
 
 class StorySegment {
