@@ -15,7 +15,7 @@ class GeminiService {
     Agent.environment['GOOGLE_API_KEY'] = apiKey;
 
     // Use the model name with 'google:' prefix as recommended for v2.0.2
-    _agent = Agent('google:gemini-3-flash');
+    _agent = Agent('google:gemini-3-flash-preview');
 
     _history.add(
       ChatMessage.system(

@@ -6,7 +6,7 @@ import 'package:dartantic_ai/dartantic_ai.dart';
 class ImageService {
   final String _apiKey;
   static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent';
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
 
   ImageService(this._apiKey) {
     if (_apiKey.isEmpty) {
