@@ -12,7 +12,7 @@ class GeminiService {
     // Set API key in environment for the agent to find
     Agent.environment['GEMINI_API_KEY'] = apiKey;
 
-    _agent = Agent('gemini-2.5-flash');
+    _agent = Agent('gemini-3-flash');
 
     _history.add(
       ChatMessage.system(
