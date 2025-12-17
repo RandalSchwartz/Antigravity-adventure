@@ -10,9 +10,12 @@ class GeminiService {
       throw Exception('API Key cannot be empty');
     }
     // Set API key in environment for the agent to find
+    // Using both names for maximum compatibility
     Agent.environment['GEMINI_API_KEY'] = apiKey;
+    Agent.environment['GOOGLE_API_KEY'] = apiKey;
 
-    _agent = Agent('gemini-3-flash');
+    // Use the model name with 'google:' prefix as recommended for v2.0.2
+    _agent = Agent('google:gemini-3-flash');
 
     _history.add(
       ChatMessage.system(
