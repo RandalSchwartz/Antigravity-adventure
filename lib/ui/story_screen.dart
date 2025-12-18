@@ -30,6 +30,7 @@ class _StoryScreenState extends State<StoryScreen> {
     final story = gameState.currentStory.watch(context);
     final image = gameState.currentImage.watch(context);
     final isLoading = gameState.isLoading.watch(context);
+    final isImageLoading = gameState.isImageLoading.watch(context);
     final error = gameState.error.watch(context);
 
     return Scaffold(
@@ -39,7 +40,6 @@ class _StoryScreenState extends State<StoryScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              // Maybe restart or refresh?
               Navigator.of(context).pop();
             },
           ),
@@ -93,10 +93,40 @@ class _StoryScreenState extends State<StoryScreen> {
                         ),
                       ),
                     )
-                  else if (isLoading)
+                  else if (isImageLoading)
                     const SizedBox(
                       height: 300,
-                      child: Center(child: CircularProgressIndicator()),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text('Generating visual scene...'),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (story != null)
+                    Container(
+                      height: 300,
+                      color: Colors.grey.shade200,
+                      child: Center(
+                        child: ElevatedButton.icon(
+                          onPressed: isLoading
+                              ? null
+                              : () =>
+                                    gameState.generateImageForCurrentSegment(),
+                          icon: const Icon(Icons.image),
+                          label: const Text('Visualize this scene'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
 
                   Padding(

@@ -20,6 +20,10 @@ class GameState {
     debugLabel: 'Game State: Current Image',
   );
   final isLoading = signal(false, debugLabel: 'Game State: Is Loading');
+  final isImageLoading = signal(
+    false,
+    debugLabel: 'Game State: Image Is Loading',
+  );
   final error = signal<String?>(null, debugLabel: 'Game State: Error');
   final history = listSignal<String>(
     [],
@@ -70,22 +74,7 @@ class GameState {
       // Generate first story segment
       final story = await _geminiService!.generateStory(initialPrompt);
       currentStory.value = story;
-
-      // Generate image based on story text
-      try {
-        final image = await _imageService!.generateImage(
-          storyText: story.text,
-          conversationHistory: _geminiService!.chatHistory,
-          previousImage: null,
-        );
-        currentImage.value = image;
-        _lastSuccessfulImage = image;
-      } on Exception catch (e, stackTrace) {
-        debugPrint('Initial image generation failed: $e');
-        debugPrintStack(stackTrace: stackTrace);
-        currentImage.value = null;
-        error.value = "Story generated, but visual scene failed: $e";
-      }
+      currentImage.value = null; // Clear previous image context
 
       // Add to display history
       history.add("Start: $initialPrompt");
@@ -112,23 +101,7 @@ class GameState {
       // Generate next segment
       final story = await _geminiService!.generateStory(choice);
       currentStory.value = story;
-
-      // Generate image with full context (using last successful image)
-      try {
-        final image = await _imageService!.generateImage(
-          storyText: story.text,
-          conversationHistory: _geminiService!.chatHistory,
-          previousImage: _lastSuccessfulImage,
-        );
-        currentImage.value = image;
-        _lastSuccessfulImage = image;
-      } on Exception catch (e, stackTrace) {
-        debugPrint('Image generation failed: $e');
-        debugPrintStack(stackTrace: stackTrace);
-        // If failed, we clear the current display image but keep _lastSuccessfulImage for next time
-        currentImage.value = null;
-        error.value = "Story continued, but visual scene failed: $e";
-      }
+      currentImage.value = null; // Clear previous image context
 
       // Update display history
       history.add("Action: $choice");
@@ -138,6 +111,32 @@ class GameState {
       debugPrintStack(stackTrace: stackTrace);
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> generateImageForCurrentSegment() async {
+    final story = currentStory.value;
+    if (story == null || _imageService == null) return;
+    if (isImageLoading.value) return;
+
+    isImageLoading.value = true;
+    error.value = null;
+
+    try {
+      final image = await _imageService!.generateImage(
+        storyText: story.text,
+        conversationHistory: _geminiService!.chatHistory,
+        previousImage: _lastSuccessfulImage,
+      );
+      currentImage.value = image;
+      _lastSuccessfulImage = image;
+    } on Exception catch (e, stackTrace) {
+      debugPrint('On-demand image generation failed: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      error.value = "Visual scene generation failed: $e";
+      currentImage.value = null;
+    } finally {
+      isImageLoading.value = false;
     }
   }
 }
