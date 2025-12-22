@@ -1,6 +1,8 @@
+import 'dart:async';
+
+import 'package:cyoa_game/state/game_signals.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../state/game_signals.dart';
 
 class ApiKeyScreen extends StatefulWidget {
   const ApiKeyScreen({super.key});
@@ -30,7 +32,7 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
   }
 
   Future<void> _launchUrl() async {
-    final Uri url = Uri.parse('https://aistudio.google.com/app/apikey');
+    final url = Uri.parse('https://aistudio.google.com/app/apikey');
     if (!await launchUrl(url)) {
       throw Exception('Could not launch $url');
     }
@@ -67,7 +69,7 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
                 obscureText: true,
                 onSubmitted: (value) {
                   if (_isValid) {
-                    gameState.setApiKey(value.trim());
+                    unawaited(gameState.setApiKey(value.trim()));
                   }
                 },
               ),
@@ -76,7 +78,9 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _isValid
-                      ? () => gameState.setApiKey(_controller.text.trim())
+                      ? () => unawaited(
+                          gameState.setApiKey(_controller.text.trim()),
+                        )
                       : null,
                   child: const Text('Save & Continue'),
                 ),

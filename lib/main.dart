@@ -1,10 +1,11 @@
 import 'dart:ui';
+
+import 'package:cyoa_game/state/game_signals.dart';
+import 'package:cyoa_game/ui/api_key_screen.dart';
+import 'package:cyoa_game/ui/error_screen.dart';
+import 'package:cyoa_game/ui/start_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'state/game_signals.dart';
-import 'ui/api_key_screen.dart';
-import 'ui/error_screen.dart';
-import 'ui/start_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +26,7 @@ void main() async {
   // Initialize game state
   try {
     await gameState.init();
-  } catch (e) {
+  } on Exception catch (e) {
     debugPrint('Failed to initialize game state: $e');
   }
 
@@ -50,10 +51,7 @@ class AdventureApp extends StatelessWidget {
         ErrorWidget.builder = (FlutterErrorDetails details) {
           return ErrorScreen(
             error: details.exception,
-            onRetry: () {
-              // Simple restart by re-running main (in a real app, use a proper restart mechanism)
-              main();
-            },
+            onRetry: main,
           );
         };
         return child!;

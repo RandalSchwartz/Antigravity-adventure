@@ -2,9 +2,6 @@ import 'package:dartantic_ai/dartantic_ai.dart';
 import 'package:json_schema/json_schema.dart';
 
 class GeminiService {
-  late final Agent _agent;
-  final List<ChatMessage> _history = [];
-
   GeminiService(String apiKey) {
     if (apiKey.isEmpty) {
       throw Exception('API Key cannot be empty');
@@ -19,7 +16,8 @@ class GeminiService {
 
     _history.add(
       ChatMessage.system(
-        '''You are a creative storyteller for a "Choose Your Own Adventure" game.
+        '''
+You are a creative storyteller for a "Choose Your Own Adventure" game.
 Generate the next segment of the story based on the user's action.
 Return the response in valid JSON format with the following structure:
 {
@@ -33,6 +31,8 @@ Return the response in valid JSON format with the following structure:
       ),
     );
   }
+  late final Agent _agent;
+  final List<ChatMessage> _history = [];
 
   Future<StorySegment> generateStory(String prompt) async {
     final result = await _agent.sendFor<StorySegment>(
@@ -61,9 +61,6 @@ Return the response in valid JSON format with the following structure:
 }
 
 class StorySegment {
-  final String text;
-  final List<String> choices;
-
   StorySegment({required this.text, required this.choices});
 
   factory StorySegment.fromJson(Map<String, dynamic> json) {
@@ -72,4 +69,6 @@ class StorySegment {
       choices: (json['choices'] as List).map((e) => e as String).toList(),
     );
   }
+  final String text;
+  final List<String> choices;
 }

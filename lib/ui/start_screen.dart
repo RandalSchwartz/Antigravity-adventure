@@ -1,7 +1,9 @@
+import 'dart:async';
+
+import 'package:cyoa_game/state/game_signals.dart';
+import 'package:cyoa_game/ui/story_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import '../state/game_signals.dart';
-import 'story_screen.dart';
 
 class StartScreen extends StatefulWidget {
   const StartScreen({super.key});
@@ -19,13 +21,15 @@ class _StartScreenState extends State<StartScreen> {
     super.dispose();
   }
 
-  void _startGame() {
+  Future<void> _startGame() async {
     if (_controller.text.trim().isEmpty) return;
 
-    gameState.startGame(_controller.text.trim());
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const StoryScreen()));
+    await gameState.startGame(_controller.text.trim());
+    if (mounted) {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const StoryScreen()));
+    }
   }
 
   @override
@@ -45,27 +49,29 @@ class _StartScreenState extends State<StartScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Settings'),
-                  content: const Text('Do you want to reset your API Key?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        gameState.clearApiKey();
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Reset Key',
-                        style: TextStyle(color: Colors.red),
+              unawaited(
+                showDialog<void>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Settings'),
+                    content: const Text('Do you want to reset your API Key?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
                       ),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () {
+                          unawaited(gameState.clearApiKey());
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'Reset Key',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -73,7 +79,7 @@ class _StartScreenState extends State<StartScreen> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -104,7 +110,7 @@ class _StartScreenState extends State<StartScreen> {
               const SizedBox(height: 24),
               if (error != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: Text(error, style: const TextStyle(color: Colors.red)),
                 ),
               SizedBox(

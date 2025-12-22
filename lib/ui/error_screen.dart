@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ErrorScreen extends StatelessWidget {
+  const ErrorScreen({required this.error, super.key, this.onRetry});
   final Object error;
   final VoidCallback? onRetry;
-
-  const ErrorScreen({super.key, required this.error, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +11,7 @@ class ErrorScreen extends StatelessWidget {
       backgroundColor: Colors.red.shade50,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

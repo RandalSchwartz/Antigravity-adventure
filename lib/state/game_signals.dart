@@ -1,31 +1,39 @@
+import 'package:cyoa_game/services/gemini_service.dart';
+import 'package:cyoa_game/services/image_service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:signals_flutter/signals_flutter.dart';
-import '../services/gemini_service.dart';
-import '../services/image_service.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 
 class GameState {
   GeminiService? _geminiService;
   ImageService? _imageService;
 
   // Signals
-  final apiKey = signal<String?>(null, debugLabel: 'Game State: API Key');
-  final currentStory = signal<StorySegment?>(
+  final FlutterSignal<String?> apiKey = signal<String?>(
+    null,
+    debugLabel: 'Game State: API Key',
+  );
+  final FlutterSignal<StorySegment?> currentStory = signal<StorySegment?>(
     null,
     debugLabel: 'Game State: Current Story',
   );
-  final currentImage = signal<Uint8List?>(
+  final FlutterSignal<Uint8List?> currentImage = signal<Uint8List?>(
     null,
     debugLabel: 'Game State: Current Image',
   );
-  final isLoading = signal(false, debugLabel: 'Game State: Is Loading');
-  final isImageLoading = signal(
+  final FlutterSignal<bool> isLoading = signal(
+    false,
+    debugLabel: 'Game State: Is Loading',
+  );
+  final FlutterSignal<bool> isImageLoading = signal(
     false,
     debugLabel: 'Game State: Image Is Loading',
   );
-  final error = signal<String?>(null, debugLabel: 'Game State: Error');
-  final history = listSignal<String>(
+  final FlutterSignal<String?> error = signal<String?>(
+    null,
+    debugLabel: 'Game State: Error',
+  );
+  final ListSignal<String> history = listSignal<String>(
     [],
     debugLabel: 'Game State: Story History',
   );
@@ -37,19 +45,18 @@ class GameState {
     final prefs = await SharedPreferences.getInstance();
     final key = prefs.getString('gemini_api_key');
     if (key != null && key.isNotEmpty) {
-      setApiKey(key);
+      await setApiKey(key);
     }
   }
 
-  void setApiKey(String key) {
+  Future<void> setApiKey(String key) async {
     apiKey.value = key;
     _geminiService = GeminiService(key);
     _imageService = ImageService(key);
 
     // Save to prefs
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setString('gemini_api_key', key);
-    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('gemini_api_key', key);
   }
 
   Future<void> clearApiKey() async {
@@ -62,7 +69,7 @@ class GameState {
 
   Future<void> startGame(String initialPrompt) async {
     if (_geminiService == null || _imageService == null) {
-      error.value = "API Key not set";
+      error.value = 'API Key not set';
       return;
     }
     isLoading.value = true;
@@ -77,8 +84,9 @@ class GameState {
       currentImage.value = null; // Clear previous image context
 
       // Add to display history
-      history.add("Start: $initialPrompt");
-      history.add(story.text);
+      history
+        ..add('Start: $initialPrompt')
+        ..add(story.text);
     } on Exception catch (e, stackTrace) {
       error.value = e.toString();
       debugPrintStack(stackTrace: stackTrace);
@@ -90,7 +98,7 @@ class GameState {
   Future<void> makeChoice(String choice) async {
     if (isLoading.value) return;
     if (_geminiService == null || _imageService == null) {
-      error.value = "API Key not set";
+      error.value = 'API Key not set';
       return;
     }
 
@@ -104,8 +112,9 @@ class GameState {
       currentImage.value = null; // Clear previous image context
 
       // Update display history
-      history.add("Action: $choice");
-      history.add(story.text);
+      history
+        ..add('Action: $choice')
+        ..add(story.text);
     } on Exception catch (e, stackTrace) {
       error.value = e.toString();
       debugPrintStack(stackTrace: stackTrace);
@@ -133,7 +142,7 @@ class GameState {
     } on Exception catch (e, stackTrace) {
       debugPrint('On-demand image generation failed: $e');
       debugPrintStack(stackTrace: stackTrace);
-      error.value = "Visual scene generation failed: $e";
+      error.value = 'Visual scene generation failed: $e';
       currentImage.value = null;
     } finally {
       isImageLoading.value = false;

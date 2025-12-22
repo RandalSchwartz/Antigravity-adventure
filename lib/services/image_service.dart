@@ -1,14 +1,13 @@
-import 'package:flutter/foundation.dart';
 import 'package:dartantic_ai/dartantic_ai.dart';
+import 'package:flutter/foundation.dart';
 
 class ImageService {
-  late final Agent _agent;
-
   ImageService(String apiKey) {
     if (apiKey.isEmpty) {
       throw Exception('API Key cannot be empty');
     }
-    // Using Gemini 3 Pro Image (Nano Banana Pro) for 3.0 consistency and higher quality
+    // Using Gemini 3 Pro Image (Nano Banana Pro) for 3.0 consistency
+    // and higher quality
     Agent.environment['GEMINI_API_KEY'] = apiKey;
     Agent.environment['GOOGLE_API_KEY'] = apiKey;
     _agent = Agent(
@@ -37,6 +36,7 @@ class ImageService {
       ),
     );
   }
+  late final Agent _agent;
 
   Future<Uint8List> generateImage({
     required String storyText,
@@ -45,13 +45,14 @@ class ImageService {
   }) async {
     try {
       // 1. Prepare the prompt for visual consistency
-      String prompt =
+      var prompt =
           'A high-quality photorealistic image of this scene: $storyText';
-      final List<Part> attachments = [];
+      final attachments = <Part>[];
 
       if (previousImage != null) {
         prompt +=
-            '. Maintain visual consistency with the provided image (character features, environment style, and lighting).';
+            '. Maintain visual consistency with the provided image '
+            '(character features, environment style, and lighting).';
         attachments.add(DataPart(previousImage, mimeType: 'image/png'));
         debugPrint('ImageService: Using image-to-image reference');
       }
@@ -66,7 +67,8 @@ class ImageService {
       );
 
       debugPrint(
-        'ImageService: Received response. Assets count: ${result.assets.length}, Messages: ${result.messages.length}',
+        'ImageService: Received response. Assets count: '
+        '${result.assets.length}, Messages: ${result.messages.length}',
       );
 
       // 3. Extract image bytes from assets

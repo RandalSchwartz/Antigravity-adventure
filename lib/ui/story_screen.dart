@@ -1,8 +1,10 @@
+import 'dart:async';
+
+import 'package:cyoa_game/state/game_signals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import '../state/game_signals.dart';
 
 class StoryScreen extends StatefulWidget {
   const StoryScreen({super.key});
@@ -20,8 +22,8 @@ class _StoryScreenState extends State<StoryScreen> {
     super.dispose();
   }
 
-  void _handleChoice(String choice) {
-    gameState.makeChoice(choice);
+  Future<void> _handleChoice(String choice) async {
+    await gameState.makeChoice(choice);
     _customInputController.clear();
   }
 
@@ -53,9 +55,9 @@ class _StoryScreenState extends State<StoryScreen> {
                 children: [
                   if (image != null)
                     GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<void>(
                             builder: (_) => Scaffold(
                               appBar: AppBar(
                                 backgroundColor: Colors.black,
@@ -115,8 +117,9 @@ class _StoryScreenState extends State<StoryScreen> {
                         child: ElevatedButton.icon(
                           onPressed: isLoading
                               ? null
-                              : () =>
-                                    gameState.generateImageForCurrentSegment(),
+                              : () => unawaited(
+                                  gameState.generateImageForCurrentSegment(),
+                                ),
                           icon: const Icon(Icons.image),
                           label: const Text('Visualize this scene'),
                           style: ElevatedButton.styleFrom(
@@ -130,7 +133,7 @@ class _StoryScreenState extends State<StoryScreen> {
                     ),
 
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -162,7 +165,7 @@ class _StoryScreenState extends State<StoryScreen> {
                           const SizedBox(height: 16),
                           ...story.choices.map(
                             (choice) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
+                              padding: const EdgeInsets.only(bottom: 12),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.all(16),
@@ -170,7 +173,7 @@ class _StoryScreenState extends State<StoryScreen> {
                                 ),
                                 onPressed: isLoading
                                     ? null
-                                    : () => _handleChoice(choice),
+                                    : () => unawaited(_handleChoice(choice)),
                                 child: Text(
                                   choice,
                                   style: const TextStyle(fontSize: 16),
@@ -192,7 +195,7 @@ class _StoryScreenState extends State<StoryScreen> {
                                   ),
                                   onSubmitted: (value) {
                                     if (value.isNotEmpty && !isLoading) {
-                                      _handleChoice(value);
+                                      unawaited(_handleChoice(value));
                                     }
                                   },
                                 ),
@@ -205,8 +208,10 @@ class _StoryScreenState extends State<StoryScreen> {
                                         if (_customInputController
                                             .text
                                             .isNotEmpty) {
-                                          _handleChoice(
-                                            _customInputController.text,
+                                          unawaited(
+                                            _handleChoice(
+                                              _customInputController.text,
+                                            ),
                                           );
                                         }
                                       },
