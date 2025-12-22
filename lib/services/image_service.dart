@@ -8,11 +8,11 @@ class ImageService {
     if (apiKey.isEmpty) {
       throw Exception('API Key cannot be empty');
     }
-    // Using Gemini 2.5 Flash Image (Nano Banana) for I2I support and speed
+    // Using Gemini 3 Pro Image (Nano Banana Pro) for 3.0 consistency and higher quality
     Agent.environment['GEMINI_API_KEY'] = apiKey;
     Agent.environment['GOOGLE_API_KEY'] = apiKey;
     _agent = Agent(
-      'google?media=gemini-2.5-flash-image',
+      'google?media=gemini-3-pro-image-preview',
       mediaModelOptions: const GoogleMediaGenerationModelOptions(
         safetySettings: [
           ChatGoogleGenerativeAISafetySetting(
