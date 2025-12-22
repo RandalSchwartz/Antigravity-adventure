@@ -8,11 +8,11 @@ class ImageService {
     if (apiKey.isEmpty) {
       throw Exception('API Key cannot be empty');
     }
-    // Using documented connection string for image generation
+    // Using Gemini 2.5 Flash Image (Nano Banana) for I2I support and speed
     Agent.environment['GEMINI_API_KEY'] = apiKey;
     Agent.environment['GOOGLE_API_KEY'] = apiKey;
     _agent = Agent(
-      'google?media=gemini-3-pro-image-preview',
+      'google?media=gemini-2.5-flash-image',
       mediaModelOptions: const GoogleMediaGenerationModelOptions(
         safetySettings: [
           ChatGoogleGenerativeAISafetySetting(
@@ -44,20 +44,25 @@ class ImageService {
     Uint8List? previousImage,
   }) async {
     try {
-      // NOTE: We are intentionally NOT using history for image generation (stateless).
-      // Imagen 3 works best with a single, clear, descriptive prompt.
-      // We also avoid system messages here to ensure the model focuses purely on drawing.
-
-      // 1. Prepare a clean, descriptive prompt
-      final prompt =
+      // 1. Prepare the prompt for visual consistency
+      String prompt =
           'A high-quality photorealistic image of this scene: $storyText';
+      final List<Part> attachments = [];
+
+      if (previousImage != null) {
+        prompt +=
+            '. Maintain visual consistency with the provided image (character features, environment style, and lighting).';
+        attachments.add(DataPart(previousImage, mimeType: 'image/png'));
+        debugPrint('ImageService: Using image-to-image reference');
+      }
+
       debugPrint('ImageService: Generating image with prompt: $prompt');
 
       // 2. Generate the image
       final result = await _agent.generateMedia(
         prompt,
         mimeTypes: ['image/png'],
-        // history: history, // Removed for stateless reliability
+        attachments: attachments,
       );
 
       debugPrint(
