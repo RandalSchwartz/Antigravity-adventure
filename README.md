@@ -6,14 +6,14 @@ An infinite, interactive "Choose Your Own Adventure" game powered by Google's Ge
 
 ## ✨ Features
 
-*   **Infinite Narrative**: Powered by `gemini-2.5-flash`, the story never ends and adapts to your every choice.
-*   **Dynamic Illustrations**: Each scene is visualized in real-time using `gemini-2.5-flash-image`.
-*   **Visual Continuity**: The AI remembers what the previous scene looked like, maintaining consistency in characters and settings.
+*   **Infinite Narrative**: Powered by `gemini-3-flash`, the story never ends and adapts to your every choice.
+*   **Dynamic Illustrations**: Each scene is visualized in real-time using `gemini-3-pro-image-preview` (Nano Banana Pro).
+*   **Visual Continuity**: Powered by **Image-to-Image (I2I)**, the AI uses previous scenes as visual references to maintain consistency in characters and settings.
 *   **Interactive Choices**: Choose from AI-generated options or type your own custom action to do anything you want.
 *   **Full-Screen Immersion**: Tap any image to explore it in a zoomable, full-screen view.
 *   **Cross-Platform**: Runs smoothly on Android, iOS, macOS, and Web.
 
-## 🛠️ Setup & Configuration
+## 🚀 Setup & Configuration
 
 ### Prerequisites
 
@@ -24,8 +24,8 @@ An infinite, interactive "Choose Your Own Adventure" game powered by Google's Ge
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/yourusername/antigravity-adventure.git
-    cd antigravity-adventure
+    git clone https://github.com/RandalSchwartz/Antigravity-adventure.git
+    cd Antigravity-adventure
     ```
 
 2.  **Install dependencies**:
@@ -38,39 +38,16 @@ An infinite, interactive "Choose Your Own Adventure" game powered by Google's Ge
     *   You will be prompted to enter your **Gemini API Key** on the first run.
     *   The key is stored securely on your device using `shared_preferences`.
 
-## 🚀 How to Run
-
-### Mobile & Desktop
-```bash
-flutter run
-```
-
-### Web
-To run on the web:
-```bash
-flutter run -d chrome
-```
-
-## 🎮 How to Play
-
-1.  **Start Your Adventure**: Enter a starting scenario (e.g., "A space pirate waking up in a jail cell" or "A wizard lost in a neon city").
-2.  **Make Choices**: Read the story and select one of the generated choices, or type your own custom action in the text field.
-3.  **Explore Visuals**:
-    *   The AI generates an image for every scene.
-    *   **Tap the image** to open it in full-screen mode.
-    *   **Zoom and Pan** to see details.
-    *   Press **Esc** (on desktop) or tap the back button to return to the story.
-
 ## 🏗️ Architecture
 
-This project uses a clean, reactive architecture:
+This project uses a modern, reactive architecture powered by **Agentic AI**:
 
 *   **State Management**: [signals_flutter](https://pub.dev/packages/signals_flutter) for reactive state and clean UI updates.
-*   **AI Integration**:
-    *   **Text**: Uses the `google_generative_ai` SDK for managing chat sessions and history.
-    *   **Images**: Uses a custom REST implementation to handle multimodal context (passing previous images to the model).
-*   **Safety**: Implements robust error handling to ensure the game continues even if an image fails to generate due to safety filters.
+*   **AI Framework**: [dartantic_ai](https://pub.dev/packages/dartantic_ai) – a declarative agentic framework for Dart.
+    *   **Text Agent**: Uses `gemini-3-flash-preview` with structured JSON output for narrating the story and offering choices.
+    *   **Image Agent**: Uses `gemini-3-pro-image-preview` with **Multimedia Input** (attachments) to achieve image-to-image visual consistency.
+*   **Safety & Robustness**: Implements robust error handling to ensure the game continues even if an image fails to generate due to safety filters.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
