@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-12-23
+
+### Added
+- Implemented API key persistence using `signals_flutter`'s `PersistedSignal` and `shared_preferences`.
+- Added automatic detection and handling of invalid API keys, returning the user to the setup screen.
+- Optimized app startup to pre-load the stored API key asynchronously with no UI flicker.
+
 ## [1.1.0] - 2025-12-21
 
 ### Added

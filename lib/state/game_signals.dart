@@ -4,15 +4,33 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
+class SharedPreferencesStore implements SignalsKeyValueStore {
+  @override
+  Future<String?> getItem(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(key);
+  }
+
+  @override
+  Future<void> setItem(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+  }
+
+  @override
+  Future<void> removeItem(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
+  }
+}
+
 class GameState {
   GeminiService? _geminiService;
   ImageService? _imageService;
 
   // Signals
-  final FlutterSignal<String?> apiKey = signal<String?>(
-    null,
-    debugLabel: 'Game State: API Key',
-  );
+  late final PersistedNullableStringSignal apiKey;
   final FlutterSignal<StorySegment?> currentStory = signal<StorySegment?>(
     null,
     debugLabel: 'Game State: Current Story',
@@ -42,29 +60,45 @@ class GameState {
   Uint8List? _lastSuccessfulImage;
 
   Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = prefs.getString('gemini_api_key');
-    if (key != null && key.isNotEmpty) {
-      await setApiKey(key);
-    }
+    final store = SharedPreferencesStore();
+    // Initialize signal. It will load from store asynchronously.
+    apiKey = PersistedNullableStringSignal(
+      null,
+      'gemini_api_key',
+      store: store,
+    );
+
+    // React to API key changes
+    effect(() {
+      final key = apiKey.value;
+      if (key != null && key.isNotEmpty) {
+        _updateServices(key);
+      } else {
+        _geminiService = null;
+        _imageService = null;
+      }
+    });
+  }
+
+  void _updateServices(String key) {
+    _geminiService = GeminiService(key);
+    _imageService = ImageService(key);
   }
 
   Future<void> setApiKey(String key) async {
     apiKey.value = key;
-    _geminiService = GeminiService(key);
-    _imageService = ImageService(key);
-
-    // Save to prefs
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('gemini_api_key', key);
   }
 
   Future<void> clearApiKey() async {
     apiKey.value = null;
-    _geminiService = null;
-    _imageService = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('gemini_api_key');
+  }
+
+  bool _isInvalidKeyError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('api_key_invalid') ||
+        msg.contains('invalid api key') ||
+        msg.contains('api key not valid') ||
+        msg.contains('401');
   }
 
   Future<void> startGame(String initialPrompt) async {
@@ -88,6 +122,9 @@ class GameState {
         ..add('Start: $initialPrompt')
         ..add(story.text);
     } on Exception catch (e, stackTrace) {
+      if (_isInvalidKeyError(e)) {
+        await clearApiKey();
+      }
       error.value = e.toString();
       debugPrintStack(stackTrace: stackTrace);
     } finally {
@@ -116,6 +153,9 @@ class GameState {
         ..add('Action: $choice')
         ..add(story.text);
     } on Exception catch (e, stackTrace) {
+      if (_isInvalidKeyError(e)) {
+        await clearApiKey();
+      }
       error.value = e.toString();
       debugPrintStack(stackTrace: stackTrace);
     } finally {
@@ -140,6 +180,9 @@ class GameState {
       currentImage.value = image;
       _lastSuccessfulImage = image;
     } on Exception catch (e, stackTrace) {
+      if (_isInvalidKeyError(e)) {
+        await clearApiKey();
+      }
       debugPrint('On-demand image generation failed: $e');
       debugPrintStack(stackTrace: stackTrace);
       error.value = 'Visual scene generation failed: $e';
